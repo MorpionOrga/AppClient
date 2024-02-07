@@ -14,4 +14,4 @@
 #include <memory.h>
 #include <tchar.h>
 
-#define WM_TOTO (WM_USER + 1) 
+#define WM_ACCEPT (WM_USER + 1) 

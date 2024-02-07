@@ -9,21 +9,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
+//#include <SFML/Graphics.hpp>
 #include <iostream>
 #include "framework.h"
 #include "appClient.h"
 
-//DÃ©finie le port
+
 //#define PORT 80
-#define PORT 14843
-#define MAX_LOADSTRING 100
+#define PORT 14843  //Définie le port
+#define MAX_LOADSTRING 100 
 
 // Variables globales :
 HINSTANCE hInst;                                // Instance actuelle
 WCHAR szTitle[MAX_LOADSTRING];                  // Texte de la barre de titre
 WCHAR szWindowClass[MAX_LOADSTRING];            // Nom de la classe de fenetre principale
 
-// DÃ©clarations anticipÃ©es des fonctions incluses dans ce module de code :
+// Déclarations anticipées des fonctions incluses dans ce module de code :
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -65,17 +66,43 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");;
 
 
-    // Connexion au serveur
+    // Liaison du socket / Connexion au serveur
     if (connect(hsocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
         printf("Connect failed\n");
         closesocket(hsocket);
         WSACleanup();
         return 1;
     }
+    else {
+        std::cout << "Connecté au serveur.\n";
 
+        // Envoie d'un message pour indiquer que le client est prêt à recevoir des messages
+        const char* readyMessage = "Ready to receive messages";
+        send(hsocket, readyMessage, strlen(readyMessage), 0);
+    }
+
+
+    // Envoie d'un message
     const char* message = "Test!";
     send(hsocket, message, strlen(message), 0);
     std::cout << "Message envoyÃ© au serveur : " << message << std::endl;
+
+    //Reception du message
+    char buffer[4096];
+    int bytesRead = recv(hsocket, buffer, sizeof(buffer), 0);
+    if (bytesRead > 0) {
+        // Message reçu avec succès
+        buffer[bytesRead] = '\0'; // Ajouter le terminateur de chaîne
+        std::cout << "Message du serveur : " << buffer << std::endl;
+    }
+    else if (bytesRead == 0) {
+        // La connexion a été fermée par le serveur
+        std::cout << "Connexion fermée par le serveur." << std::endl;
+    }
+    else {
+        // Gestion de l'erreur
+        std::cerr << "Erreur lors de la réception du message du serveur." << std::endl;
+    }
 
     // Initialise les chaÃ®nes globales
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -180,7 +207,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
-        // Analyse les sÃ©lections de menu :
+        // Analyse les sélections de menu :
         switch (wmId)
         {
         case IDM_ABOUT:
@@ -205,11 +232,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+    case WM_USER + 1: // Ajoutez ce cas pour traiter le message reçu du serveur
+    {
+        // Extrait le message reçu du serveur à partir de lParam
+        const char* message = reinterpret_cast<const char*>(lParam);
+
+        // Convertit le message en format WCHAR
+        int len = MultiByteToWideChar(CP_UTF8, 0, message, -1, NULL, 0);
+        wchar_t* wideMessage = new wchar_t[len];
+        MultiByteToWideChar(CP_UTF8, 0, message, -1, wideMessage, len);
+
+        // Affiche le message dans une boîte de dialogue
+        MessageBox(hWnd, wideMessage, L"Message du serveur", MB_OK);
+
+        // Nettoie la mémoire allouée pour le message converti
+        delete[] wideMessage;
+    }
+    break;
+
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
 }
+
 
 // Gestionnaire de messages pour la boÃ®te de dialogue Ã€ propos de.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
