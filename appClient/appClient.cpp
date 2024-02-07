@@ -19,9 +19,9 @@
 #define MAX_LOADSTRING 100
 
 // Variables globales :
-HINSTANCE hInst;                                // instance actuelle
+HINSTANCE hInst;                                // Instance actuelle
 WCHAR szTitle[MAX_LOADSTRING];                  // Texte de la barre de titre
-WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenÃªtre principale
+WCHAR szWindowClass[MAX_LOADSTRING];            // Nom de la classe de fenetre principale
 
 // DÃ©clarations anticipÃ©es des fonctions incluses dans ce module de code :
 ATOM                MyRegisterClass(HINSTANCE hInstance);
