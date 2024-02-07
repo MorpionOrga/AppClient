@@ -1,4 +1,3 @@
 ﻿  appClient.cpp
-C:\Users\mstampanoni\source\repos\MorpionOrga\AppClient\appClient\appClient.cpp(77,34): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
-  LINK : C:\Users\mstampanoni\source\repos\MorpionOrga\Morpion\x64\Debug\appClient.exe introuvable ou non généré par la dernière édition de liens incrémentielle ; édition de liens complète en cours
-  appClient.vcxproj -> C:\Users\mstampanoni\source\repos\MorpionOrga\Morpion\x64\Debug\appClient.exe
+C:\Users\npeinado\source\repos\MorpionOrga\AppClient\appClient\appClient.cpp(77,34): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
+  appClient.vcxproj -> C:\Users\npeinado\source\repos\MorpionOrga\Morpion\x64\Debug\appClient.exe

@@ -77,7 +77,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     send(hsocket, message, strlen(message), 0);
     std::cout << "Message envoyÃ© au serveur : " << message << std::endl;
 
-    // Initialise les chaÃ®nes globales
+    // Initialise les chaines globales
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
