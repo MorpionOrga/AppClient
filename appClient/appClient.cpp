@@ -25,10 +25,17 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenÃªtr
 
 // DÃ©clarations anticipÃ©es des fonctions incluses dans ce module de code :
 ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
+//BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+HWND InitInstanceW(HINSTANCE hInstance, int nCmdShow)
+{
+    HWND hWnd = CreateWindowW(L"WNDCLASS", L"", WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+
+    return hWnd;
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -39,8 +46,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: Placez le code ici.
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
-    MSG msg = { 0 };
+    hInstance = GetModuleHandle(0);
+    MyRegisterClass(hInstance);
+    HWND hWnd = InitInstanceW(hInstance, 0);
 
     int iResult;
     // initialisation de winsock
@@ -73,30 +81,48 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return 1;
     }
 
-    const char* message = "Test!";
-    send(hsocket, message, strlen(message), 0);
-    std::cout << "Message envoyÃ© au serveur : " << message << std::endl;
-
-    // Initialise les chaÃ®nes globales
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
-
-    // Effectue l'initialisation de l'application :
-    if (!InitInstance(hInstance, nCmdShow))
-    {
-        return FALSE;
+    if (WSAAsyncSelect(hsocket, hWnd, WM_RESPONCE, FD_READ | FD_CLOSE) == SOCKET_ERROR) {
+        printf("WSAAsyncSelect failed for clientSocket\n");
+        closesocket(hsocket);
+        WSACleanup();
+        return 1;
+    }
+    else {
+        std::cout << "WSAAsyncSelect successful for clientSocket\n";
     }
 
+    const char* message = "Test!";
+    send(hsocket, message, strlen(message), 0);
+    std::cout << "Message envoyé au serveur : " << message << std::endl;
+
+    std::cout << "Responce successful\n";
+    char buffer[4096];
+    int bytesRead = recv(hsocket, buffer, sizeof(buffer), 0);
+
+    if (bytesRead > 0) {
+        buffer[bytesRead] = '\0';
+        std::cout << "Message du serveur : " << buffer << std::endl;
+    }
+    else if (bytesRead == 0) {
+        // La connexion a été fermée par le client
+        std::cout << "Client disconnected." << std::endl;
+        closesocket(hsocket);
+        hsocket = INVALID_SOCKET;
+    }
+    else {
+        std::cout << "Erreur lors de la réception des données du client." << std::endl;
+        closesocket(hsocket);
+        hsocket = INVALID_SOCKET;
+    }
+
+    MSG msg;
     // Boucle de messages principale :
     while (GetMessage(&msg, nullptr, 0, 0))
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
+
 
     // Fermeture du socket du client
     closesocket(hsocket);
@@ -106,13 +132,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     return (int)msg.wParam;
 }
 
-
-
-//
-//  FONCTION : MyRegisterClass()
-//
-//  OBJECTIF : Inscrit la classe de fenÃªtre.
-//
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex;
@@ -124,84 +143,26 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = hInstance;
-    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPCLIENT));
-    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_APPCLIENT);
-    wcex.lpszClassName = szWindowClass;
-    wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.hIcon = 0;
+    wcex.hCursor = 0;
+    wcex.hbrBackground = 0;
+    wcex.lpszMenuName = 0;
+    wcex.lpszClassName = L"WNDCLASS";
+    wcex.hIconSm = 0;
 
     return RegisterClassExW(&wcex);
 }
-
-//
-//   FONCTION : InitInstance(HINSTANCE, int)
-//
-//   OBJECTIF : enregistre le handle d'instance et crÃ©e une fenÃªtre principale
-//
-//   COMMENTAIRES :
-//
-//        Dans cette fonction, nous enregistrons le handle de l'instance dans une variable globale, puis
-//        nous crÃ©ons et affichons la fenÃªtre principale du programme.
-//
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
-{
-    hInst = hInstance; // Stocke le handle d'instance dans la variable globale
-
-    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
-
-    if (!hWnd)
-    {
-        return FALSE;
-    }
-
-    ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);
-
-    return TRUE;
-}
-
-//
-//  FONCTION : WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  OBJECTIF : Traite les messages pour la fenÃªtre principale.
-//
-//  WM_COMMAND  - traite le menu de l'application
-//  WM_PAINT    - Dessine la fenÃªtre principale
-//  WM_DESTROY  - gÃ©nÃ¨re un message d'arrÃªt et retourne
-//
-//
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-    case WM_COMMAND:
+    case WM_RESPONCE:
     {
-        int wmId = LOWORD(wParam);
-        // Analyse les sÃ©lections de menu :
-        switch (wmId)
-        {
-        case IDM_ABOUT:
-            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-            break;
-        case IDM_EXIT:
-            DestroyWindow(hWnd);
-            break;
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
-        }
+        // message des clients
+        std::cout << "Responce receive" << std::endl;
+        break;
     }
-    break;
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hWnd, &ps);
-        // TODO: Ajoutez ici le code de dessin qui utilise hdc...
-        EndPaint(hWnd, &ps);
-    }
-    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
