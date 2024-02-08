@@ -1,6 +1,7 @@
 //Empeche d'avoir certains avertissements liÃ©s Ã  l'utilisation de fonctions risquÃ©es
 #define _CRT_SECURE_NO_WARNINGS
-
+// Empeche erreurs SFML/Rect.inl
+#define NOMINMAX
 //On se lie Ã  la bibliothÃ¨que ws2_32.lib
 #pragma comment(lib, "ws2_32.lib")
 
@@ -9,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
-//#include <SFML/Graphics.hpp>
+#include <SFML/Graphics.hpp>
 #include <iostream>
 #include "framework.h"
 #include "appClient.h"
@@ -44,7 +45,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MSG msg = { 0 };
 
     int iResult;
-    // initialisation de winsock
+    // Initialisation de winsock
     WSADATA wsaData;
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0) {
@@ -175,6 +176,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // Stocke le handle d'instance dans la variable globale
 
+    // Créer la fenêtre Windows
     HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
@@ -183,11 +185,50 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         return FALSE;
     }
 
+    // Créer une fenêtre SFML à partir de la poignée HWND
+    sf::RenderWindow window;
+    window.create(hWnd);
+
+    // Créer un carré SFML
+    sf::RectangleShape square(sf::Vector2f(100, 100));
+    square.setFillColor(sf::Color::Red);
+    square.setPosition(100, 100);
+
+    // Afficher la fenêtre Windows
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
+    // Boucle principale
+    MSG msg;
+    while (window.isOpen())
+    {
+        // Gérer les messages de fenêtre Windows
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+                window.close();
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        // Gérer les événements SFML
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+                window.close();
+        }
+
+        window.clear();
+        window.draw(square);
+        window.display();
+    }
+
     return TRUE;
 }
+
+
 
 //
 //  FONCTION : WndProc(HWND, UINT, WPARAM, LPARAM)
