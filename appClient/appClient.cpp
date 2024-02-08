@@ -9,9 +9,11 @@
 #include <WinSock2.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include <io.h> //ajouter console
+#include <fcntl.h> // "
 #include <Windows.h>
 #include <SFML/Graphics.hpp>
-#include <iostream>
 #include "framework.h"
 #include "appClient.h"
 
@@ -26,11 +28,32 @@ WCHAR szTitle[MAX_LOADSTRING];                  // Texte de la barre de titre
 WCHAR szWindowClass[MAX_LOADSTRING];            // Nom de la classe de fenetre principale
 
 // Déclarations anticipées des fonctions incluses dans ce module de code :
+void UpdateSFMLMessage(const std::string& message);
+
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+//---------------------------
+//Ajouter console 
+void RedirectIOToConsole()
+{
+    // Alloue une console
+    AllocConsole();
+
+    // Récupère la poignée de la console
+    HANDLE ConsoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    int SystemOutput = _open_osfhandle((intptr_t)ConsoleHandle, _O_TEXT);
+
+    // Redirige stdout vers la console
+    FILE* COutputHandle;
+    freopen_s(&COutputHandle, "CONOUT$", "w", stdout);
+
+    // Assure que stdout n'est pas mis en mémoire tampon
+    setvbuf(stdout, NULL, _IONBF, 0);
+}
+//---------------------------
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -40,6 +63,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
+    RedirectIOToConsole();// Appel de la fonction de redirection de la sortie vers la console
+
+    std::cout << "Ceci est un message dans la console.\n";
     // TODO: Placez le code ici.
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
     MSG msg = { 0 };
@@ -95,6 +121,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         // Message reçu avec succès
         buffer[bytesRead] = '\0'; // Ajouter le terminateur de chaîne
         std::cout << "Message du serveur : " << buffer << std::endl;
+
+        // Mettre à jour le message affiché dans la fenêtre SFML avec le message reçu du serveur
+        UpdateSFMLMessage(buffer);
     }
     else if (bytesRead == 0) {
         // La connexion a été fermée par le serveur
@@ -134,6 +163,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     return (int)msg.wParam;
 }
 
+//------------------------
+// Déclaration globale de la chaîne de caractères pour stocker le message du serveur
+std::string serverMessage;
+// Fonction pour mettre à jour le message affiché dans la fenêtre SFML
+void UpdateSFMLMessage(const std::string& message)
+{
+    serverMessage = message;
+    std::cout << "Message mis a jour";
+    std::cout << message;
+    std::cout << serverMessage;
+}
+//------------------------
 
 
 //
@@ -161,6 +202,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
     return RegisterClassExW(&wcex);
 }
+
 
 //
 //   FONCTION : InitInstance(HINSTANCE, int)
@@ -191,8 +233,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     return TRUE;
 }
-
-
 
 //
 //  FONCTION : WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -225,9 +265,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     case WM_PAINT:
     {
-        // Dessiner le carré SFML
         pWindow->clear();
         pWindow->draw(square);
+
+        // Affichez le message du serveur dans la fenêtre SFML
+        sf::Font font;
+        if (font.loadFromFile("font/arial.ttf")) { // Assurez-vous que le fichier arial.ttf est dans le même répertoire que votre exécutable
+            sf::Text text;
+            text.setFont(font);
+            text.setString(serverMessage);
+            text.setCharacterSize(24);
+            text.setFillColor(sf::Color::White);
+            text.setPosition(100, 300);
+            pWindow->draw(text);
+        }
+
         pWindow->display();
         break;
     }
@@ -241,6 +293,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             pWindow = nullptr;
         }
         PostQuitMessage(0);
+        break;
+    }
+    case WM_USER + 1:
+    {
+        // Recevez le message du serveur et mettez à jour la fenêtre SFML
+        const char* message = reinterpret_cast<const char*>(lParam);
+        UpdateSFMLMessage(message);
         break;
     }
     default:
