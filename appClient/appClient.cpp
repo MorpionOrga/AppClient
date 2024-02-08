@@ -176,7 +176,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // Stocke le handle d'instance dans la variable globale
 
-    // Créer la fenêtre Windows
+    // Crée la fenêtre Windows
     HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
@@ -185,45 +185,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         return FALSE;
     }
 
-    // Créer une fenêtre SFML à partir de la poignée HWND
-    sf::RenderWindow window;
-    window.create(hWnd);
-
-    // Créer un carré SFML
-    sf::RectangleShape square(sf::Vector2f(100, 100));
-    square.setFillColor(sf::Color::Red);
-    square.setPosition(100, 100);
-
-    // Afficher la fenêtre Windows
+    // Affiche la fenêtre Windows
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
-
-    // Boucle principale
-    MSG msg;
-    while (window.isOpen())
-    {
-        // Gérer les messages de fenêtre Windows
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-        {
-            if (msg.message == WM_QUIT)
-                window.close();
-
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-
-        // Gérer les événements SFML
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-                window.close();
-        }
-
-        window.clear();
-        window.draw(square);
-        window.display();
-    }
 
     return TRUE;
 }
@@ -243,59 +207,48 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static sf::RenderWindow* pWindow = nullptr; // Garder une référence à la fenêtre SFML
+    static sf::RectangleShape square(sf::Vector2f(100, 100)); // Carré SFML
+
     switch (message)
     {
-    case WM_COMMAND:
+    case WM_CREATE:
     {
-        int wmId = LOWORD(wParam);
-        // Analyse les sélections de menu :
-        switch (wmId)
-        {
-        case IDM_ABOUT:
-            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-            break;
-        case IDM_EXIT:
-            DestroyWindow(hWnd);
-            break;
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
-        }
+        // Créer la fenêtre SFML à partir de la poignée HWND
+        pWindow = new sf::RenderWindow();
+        pWindow->create(hWnd);
+
+        // Paramètres du carré SFML
+        square.setFillColor(sf::Color::Red);
+        square.setPosition(100, 100);
+        break;
     }
-    break;
     case WM_PAINT:
     {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hWnd, &ps);
-        // TODO: Ajoutez ici le code de dessin qui utilise hdc...
-        EndPaint(hWnd, &ps);
+        // Dessiner le carré SFML
+        pWindow->clear();
+        pWindow->draw(square);
+        pWindow->display();
+        break;
     }
-    break;
     case WM_DESTROY:
+    {
+        // Fermer la fenêtre SFML et libérer la mémoire
+        if (pWindow)
+        {
+            pWindow->close();
+            delete pWindow;
+            pWindow = nullptr;
+        }
         PostQuitMessage(0);
         break;
-    case WM_USER + 1: // Ajoutez ce cas pour traiter le message reçu du serveur
-    {
-        // Extrait le message reçu du serveur à partir de lParam
-        const char* message = reinterpret_cast<const char*>(lParam);
-
-        // Convertit le message en format WCHAR
-        int len = MultiByteToWideChar(CP_UTF8, 0, message, -1, NULL, 0);
-        wchar_t* wideMessage = new wchar_t[len];
-        MultiByteToWideChar(CP_UTF8, 0, message, -1, wideMessage, len);
-
-        // Affiche le message dans une boîte de dialogue
-        MessageBox(hWnd, wideMessage, L"Message du serveur", MB_OK);
-
-        // Nettoie la mémoire allouée pour le message converti
-        delete[] wideMessage;
     }
-    break;
-
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
 }
+
 
 
 // Gestionnaire de messages pour la boÃ®te de dialogue Ã€ propos de.
