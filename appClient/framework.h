@@ -14,4 +14,7 @@
 #include <memory.h>
 #include <tchar.h>
 
-#define WM_TOTO (WM_USER + 1) 
+#define PORT 14843
+#define WM_RESPONCE (WM_USER + 1) 
+#define WM_READ (WM_USER + 2) 
+

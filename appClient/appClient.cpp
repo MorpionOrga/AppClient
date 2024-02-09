@@ -1,34 +1,59 @@
-//Empeche d'avoir certains avertissements liÃ©s Ã  l'utilisation de fonctions risquÃ©es
-#define _CRT_SECURE_NO_WARNINGS
-
-//On se lie Ã  la bibliothÃ¨que ws2_32.lib
+// WindowsProject1.cpp : Définit le point d'entrée de l'application.
+//
 #pragma comment(lib, "ws2_32.lib")
 
-//Include que nous allons utiliser
+#include "framework.h"
+#include "appClient.h"
 #include <WinSock2.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
 #include <iostream>
-#include "framework.h"
-#include "appClient.h"
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 
-//DÃ©finie le port
-//#define PORT 80
-#define PORT 14843
 #define MAX_LOADSTRING 100
+#define _CRT_SECURE_NO_WARNINGS
 
-// Variables globales :
+// Variables globales :
 HINSTANCE hInst;                                // instance actuelle
 WCHAR szTitle[MAX_LOADSTRING];                  // Texte de la barre de titre
-WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenÃªtre principale
+WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenêtre principale
 
-// DÃ©clarations anticipÃ©es des fonctions incluses dans ce module de code :
+// Déclarations anticipées des fonctions incluses dans ce module de code :
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+void createMessage(std::string type, int x, int y, SOCKET& socket)
+{
+    rapidjson::Document message;
+
+    message.SetObject();
+
+    rapidjson::Value Type;
+    Type.SetString(type.c_str(), message.GetAllocator());
+    message.AddMember("type", Type, message.GetAllocator());
+
+    rapidjson::Value X;
+    X.SetInt(x);
+    message.AddMember("x", X, message.GetAllocator());
+
+    rapidjson::Value Y;
+    Y.SetInt(y);
+    message.AddMember("y", Y, message.GetAllocator());
+
+
+    //Permet de stocker le message en type json
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    message.Accept(writer);
+
+    // Convertit le JSON en chaîne de caractères
+    send(socket, buffer.GetString(), buffer.GetLength(), 0);
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -39,8 +64,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: Placez le code ici.
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
-    MSG msg = { 0 };
+
+    // Initialise les chaînes globales
+    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
+    MyRegisterClass(hInstance);
+    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+
 
     int iResult;
     // initialisation de winsock
@@ -73,22 +104,44 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return 1;
     }
 
-    const char* message = "Test!";
-    send(hsocket, message, strlen(message), 0);
-    std::cout << "Message envoyÃ© au serveur : " << message << std::endl;
-
-    // Initialise les chaÃ®nes globales
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
-
-    // Effectue l'initialisation de l'application :
-    if (!InitInstance(hInstance, nCmdShow))
-    {
-        return FALSE;
+    if (WSAAsyncSelect(hsocket, hWnd, WM_RESPONCE, FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR) {
+        printf("WSAAsyncSelect failed for clientSocket\n");
+        closesocket(hsocket);
+        WSACleanup();
+        return 1;
+    }
+    else {
+        std::cout << "WSAAsyncSelect successful for clientSocket\n";
     }
 
-    // Boucle de messages principale :
+
+    createMessage("move", 0, 0, hsocket);
+
+    std::cout << "Responce successful\n";
+    char buffer[4096];
+    int bytesRead = recv(hsocket, buffer, sizeof(buffer), 0);
+
+    if (bytesRead > 0) {
+        buffer[bytesRead] = '\0';
+        std::cout << "Message du serveur : " << buffer << std::endl;
+    }
+    else if (bytesRead == 0) {
+        // La connexion a été fermée par le client
+        std::cout << "Client disconnected." << std::endl;
+        closesocket(hsocket);
+        hsocket = INVALID_SOCKET;
+    }
+    else {
+        std::cout << "Erreur lors de la reception des donnees du client." << std::endl;
+        closesocket(hsocket);
+        hsocket = INVALID_SOCKET;
+    }
+
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
+
+    MSG msg;
+
+    // Boucle de messages principale :
     while (GetMessage(&msg, nullptr, 0, 0))
     {
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
@@ -98,20 +151,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
 
-    // Fermeture du socket du client
-    closesocket(hsocket);
-
     // Nettoyage de Winsock
     WSACleanup();
+
     return (int)msg.wParam;
 }
 
 
-
 //
-//  FONCTION : MyRegisterClass()
+//  FONCTION : MyRegisterClass()
 //
-//  OBJECTIF : Inscrit la classe de fenÃªtre.
+//  OBJECTIF : Inscrit la classe de fenêtre.
 //
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
@@ -124,7 +174,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = hInstance;
-    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPCLIENT));
+    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_APPCLIENT);
@@ -135,14 +185,14 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 }
 
 //
-//   FONCTION : InitInstance(HINSTANCE, int)
+//   FONCTION : InitInstance(HINSTANCE, int)
 //
-//   OBJECTIF : enregistre le handle d'instance et crÃ©e une fenÃªtre principale
+//   OBJECTIF : enregistre le handle d'instance et crée une fenêtre principale
 //
-//   COMMENTAIRES :
+//   COMMENTAIRES :
 //
 //        Dans cette fonction, nous enregistrons le handle de l'instance dans une variable globale, puis
-//        nous crÃ©ons et affichons la fenÃªtre principale du programme.
+//        nous créons et affichons la fenêtre principale du programme.
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
@@ -163,45 +213,65 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 }
 
 //
-//  FONCTION : WndProc(HWND, UINT, WPARAM, LPARAM)
+//  FONCTION : WndProc(HWND, UINT, WPARAM, LPARAM)
 //
-//  OBJECTIF : Traite les messages pour la fenÃªtre principale.
+//  OBJECTIF : Traite les messages pour la fenêtre principale.
 //
 //  WM_COMMAND  - traite le menu de l'application
-//  WM_PAINT    - Dessine la fenÃªtre principale
-//  WM_DESTROY  - gÃ©nÃ¨re un message d'arrÃªt et retourne
+//  WM_PAINT    - Dessine la fenêtre principale
+//  WM_DESTROY  - génère un message d'arrêt et retourne
 //
 //
+
+SOCKET Accept;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-    case WM_COMMAND:
+    case WM_RESPONCE:
     {
-        int wmId = LOWORD(wParam);
-        // Analyse les sÃ©lections de menu :
-        switch (wmId)
-        {
-        case IDM_ABOUT:
-            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-            break;
-        case IDM_EXIT:
-            DestroyWindow(hWnd);
-            break;
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
+        // connexion des cleitn 
+        std::cout << "TOTO successful\n";
+
+        if (WSAAsyncSelect(Accept, hWnd, WM_READ, FD_READ | FD_CLOSE) == SOCKET_ERROR) {
+            printf("WSAAsyncSelect failed for clientSocket\n");
+            closesocket(Accept);
+            WSACleanup();
+            return 1;
         }
+        else {
+            std::cout << "WSAAsyncSelect successful for clientSocket\n";
+        }
+        break;
     }
-    break;
-    case WM_PAINT:
+    case WM_READ:
     {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hWnd, &ps);
-        // TODO: Ajoutez ici le code de dessin qui utilise hdc...
-        EndPaint(hWnd, &ps);
+        // message des clients
+        std::cout << "TATA successful\n";
+        char buffer[4096];
+        int bytesRead = recv(Accept, buffer, sizeof(buffer), 0);
+        const char* message = "Test! Again";
+        send(Accept, message, strlen(message), 0);
+        std::cout << "Message envoyé au client: " << message << std::endl;
+
+        if (bytesRead > 0) {
+            buffer[bytesRead] = '\0';
+            std::cout << "Message du client : " << buffer << std::endl;
+        }
+        else if (bytesRead == 0) {
+            // La connexion a été fermée par le client
+            std::cout << "Client disconnected." << std::endl;
+            closesocket(Accept);
+            Accept = INVALID_SOCKET;
+        }
+        else {
+            std::cout << "Erreur lors de la réception des données du client." << std::endl;
+            closesocket(Accept);
+            Accept = INVALID_SOCKET;
+        }
+        break;
     }
-    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -211,7 +281,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-// Gestionnaire de messages pour la boÃ®te de dialogue Ã€ propos de.
+// Gestionnaire de messages pour la boîte de dialogue À propos de.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
