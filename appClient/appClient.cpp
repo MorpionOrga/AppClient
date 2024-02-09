@@ -13,27 +13,61 @@
 #include <io.h> //ajouter console
 #include <fcntl.h> // "
 #include <Windows.h>
-#include <SFML/Graphics.hpp>
 #include "framework.h"
 #include "appClient.h"
+#include <SFML/Graphics.hpp>
+//________________
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+//________________
 
+#define PORT 14843
+#define MAX_LOADSTRING 100
+#define _CRT_SECURE_NO_WARNINGS
 
-//#define PORT 80
-#define PORT 14843  //Définie le port
-#define MAX_LOADSTRING 100 
-
-// Variables globales :
-HINSTANCE hInst;                                // Instance actuelle
+// Variables globales :
+HINSTANCE hInst;                                // instance actuelle
 WCHAR szTitle[MAX_LOADSTRING];                  // Texte de la barre de titre
-WCHAR szWindowClass[MAX_LOADSTRING];            // Nom de la classe de fenetre principale
+WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenêtre principale
 
-// Déclarations anticipées des fonctions incluses dans ce module de code :
+// Déclarations anticipées des fonctions incluses dans ce module de code :
 void UpdateSFMLMessage(const std::string& message);
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 HWND                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+//________________
+void createMessage(std::string type, int x, int y, SOCKET& socket)
+{
+    rapidjson::Document message;
+
+    message.SetObject();
+
+    rapidjson::Value Type;
+    Type.SetString(type.c_str(), message.GetAllocator());
+    message.AddMember("type", Type, message.GetAllocator());
+
+    rapidjson::Value X;
+    X.SetInt(x);
+    message.AddMember("x", X, message.GetAllocator());
+
+    rapidjson::Value Y;
+    Y.SetInt(y);
+    message.AddMember("y", Y, message.GetAllocator());
+
+
+    //Permet de stocker le message en type json
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    message.Accept(writer);
+
+    // Convertit le JSON en chaîne de caractères
+    send(socket, buffer.GetString(), buffer.GetLength(), 0);
+}
+//________________
 
 //---------------------------
 //Ajouter console 
@@ -54,7 +88,6 @@ void RedirectIOToConsole()
     setvbuf(stdout, NULL, _IONBF, 0);
 }
 //---------------------------
-
 
 //------------------------
 // Déclaration globale de la chaîne de caractères pour stocker le message du serveur
@@ -77,12 +110,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
+    // TODO: Placez le code ici.
+
     RedirectIOToConsole();// Appel de la fonction de redirection de la sortie vers la console
 
-    std::cout << "Ceci est un message dans la console.\n";
-    // TODO: Placez le code ici.
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
-    MSG msg = { 0 };
+    // Initialise les chaînes globales
+    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
+    MyRegisterClass(hInstance);
 
     int iResult;
     // Initialisation de winsock
@@ -107,7 +142,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");;
 
 
-    // Liaison du socket / Connexion au serveur
+    // Connexion au serveur
     if (connect(hsocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
         printf("Connect failed\n");
         closesocket(hsocket);
@@ -123,6 +158,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
 
+    // Effectue l'initialisation de l'application :
+    HWND hWnd = InitInstance(hInstance, nCmdShow);
+
+    if (WSAAsyncSelect(hsocket, hWnd, WM_USER+1, FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR) {
+        printf("WSAAsyncSelect failed for clientSocket\n");
+        closesocket(hsocket);
+        WSACleanup();
+        return 1;
+    }
+    else {
+        std::cout << "WSAAsyncSelect successful for clientSocket\n";
+    }
+
+    //-----------------
     // Envoie d'un message
     const char* message = "Test!";
     send(hsocket, message, strlen(message), 0);
@@ -139,14 +188,36 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         // Mettre à jour le message affiché dans la fenêtre SFML avec le message reçu du serveur
         UpdateSFMLMessage(buffer);
     }
+    //-----------------
 
-    // Initialise les chaÃ®nes globales
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
 
-    // Effectue l'initialisation de l'application :
-    HWND hWnd = InitInstance(hInstance, nCmdShow);
+    //________________
+    createMessage("move", 0, 0, hsocket);
+
+    std::cout << "Responce successful\n";
+    bytesRead = recv(hsocket, buffer, sizeof(buffer), 0);
+
+
+    if (bytesRead > 0) {
+        buffer[bytesRead] = '\0';
+        std::cout << "Message du serveur : " << buffer << std::endl;
+    }
+    else if (bytesRead == 0) {
+        // La connexion a été fermée par le client
+        std::cout << "Client disconnected." << std::endl;
+        closesocket(hsocket);
+        hsocket = INVALID_SOCKET;
+    }
+    else {
+        std::cout << "Erreur lors de la reception des donnees du client." << std::endl;
+        closesocket(hsocket);
+        hsocket = INVALID_SOCKET;
+    }
+
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
+
+    MSG msg;
+    //________________
 
     sf::RenderWindow window(sf::VideoMode(800, 800), "Morpion");
     sf::RenderWindow* pWindow = &window; // Garder une référence à la fenêtre SFML
@@ -177,7 +248,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         // -- Rendu
 
         pWindow->clear();
-        pWindow->draw(square);  
+        pWindow->draw(square);
 
         // Affichez le message du serveur dans la fenêtre SFML
         sf::Font font;
@@ -202,6 +273,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     WSACleanup();
     return (int)msg.wParam;
 }
+
+
 
 
 //
@@ -271,7 +344,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static sf::RenderWindow* pWindow = nullptr; // Garder une référence à la fenêtre SFML
     static sf::RectangleShape square(sf::Vector2f(100, 100)); // Carré SFML
-    
+
     switch (message)
     {
     case WM_CREATE:
@@ -355,5 +428,5 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 /*
 - On doit faire le jeu dans le fenetre généré par CreateWindowW déjà présent à la création du projet ?
-- Pourquoi utiliser wWinMain et pas un simple main comme dans le serveur ? 
+- Pourquoi utiliser wWinMain et pas un simple main comme dans le serveur ?
 */
