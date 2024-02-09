@@ -1,4 +1,14 @@
 ﻿  appClient.cpp
-C:\Users\npeinado\source\repos\MorpionOrga\AppClient\appClient\appClient.cpp(108,43): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
-C:\Users\npeinado\source\repos\MorpionOrga\AppClient\appClient\appClient.cpp(114,34): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
-  appClient.vcxproj -> C:\Users\npeinado\source\repos\MorpionOrga\Morpion\x64\Debug\appClient.exe
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(108,43): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(114,34): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(194,6): error C2601: 'UpdateSFMLMessage' : définitions de fonctions locales non conformes
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(62,1): message : cette ligne comporte un '{' qui n'est pas équilibré
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(209,6): error C2601: 'MyRegisterClass' : définitions de fonctions locales non conformes
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(62,1): message : cette ligne comporte un '{' qui n'est pas équilibré
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(241,6): error C2601: 'InitInstance' : définitions de fonctions locales non conformes
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(62,1): message : cette ligne comporte un '{' qui n'est pas équilibré
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(272,18): error C2601: 'WndProc' : définitions de fonctions locales non conformes
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(62,1): message : cette ligne comporte un '{' qui n'est pas équilibré
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(338,18): error C2601: 'About' : définitions de fonctions locales non conformes
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(62,1): message : cette ligne comporte un '{' qui n'est pas équilibré
+C:\Users\npeinado\Source\Repos\MorpionOrga\AppClient\appClient\appClient.cpp(62,1): fatal  error C1075: '{' : jeton correspondant introuvable

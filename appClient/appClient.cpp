@@ -146,13 +146,37 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     // Boucle de messages principale :
-    while (GetMessage(&msg, nullptr, 0, 0))
+    while (1)
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
         }
+
+        // -- Logique du jeu
+
+        // -- Rendu
+
+        pWindow->clear();
+        pWindow->draw(square);
+
+        // Affichez le message du serveur dans la fenêtre SFML
+        sf::Font font;
+        if (font.loadFromFile("font/arial.ttf")) { // Assurez-vous que le fichier arial.ttf est dans le même répertoire que votre exécutable
+            sf::Text text;
+            text.setFont(font);
+            text.setString(serverMessage);
+            text.setCharacterSize(24);
+            text.setFillColor(sf::Color::White);
+            text.setPosition(100, 300);
+            pWindow->draw(text);
+        }
+
+        pWindow->display();
     }
 
     // Fermeture du socket du client
@@ -249,7 +273,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static sf::RenderWindow* pWindow = nullptr; // Garder une référence à la fenêtre SFML
     static sf::RectangleShape square(sf::Vector2f(100, 100)); // Carré SFML
-
+    
     switch (message)
     {
     case WM_CREATE:
@@ -265,23 +289,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     case WM_PAINT:
     {
-        pWindow->clear();
-        pWindow->draw(square);
+        //pWindow->clear();
+        //pWindow->draw(square);
 
-        // Affichez le message du serveur dans la fenêtre SFML
-        sf::Font font;
-        if (font.loadFromFile("font/arial.ttf")) { // Assurez-vous que le fichier arial.ttf est dans le même répertoire que votre exécutable
-            sf::Text text;
-            text.setFont(font);
-            text.setString(serverMessage);
-            text.setCharacterSize(24);
-            text.setFillColor(sf::Color::White);
-            text.setPosition(100, 300);
-            pWindow->draw(text);
-        }
+        //// Affichez le message du serveur dans la fenêtre SFML
+        //sf::Font font;
+        //if (font.loadFromFile("font/arial.ttf")) { // Assurez-vous que le fichier arial.ttf est dans le même répertoire que votre exécutable
+        //    sf::Text text;
+        //    text.setFont(font);
+        //    text.setString(serverMessage);
+        //    text.setCharacterSize(24);
+        //    text.setFillColor(sf::Color::White);
+        //    text.setPosition(100, 300);
+        //    pWindow->draw(text);
+        //}
 
-        pWindow->display();
-        break;
+        //pWindow->display();
+        //break;
     }
     case WM_DESTROY:
     {
