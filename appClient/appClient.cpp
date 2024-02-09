@@ -31,7 +31,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // Nom de la classe de fenetre p
 void UpdateSFMLMessage(const std::string& message);
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
+HWND                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
@@ -54,6 +54,20 @@ void RedirectIOToConsole()
     setvbuf(stdout, NULL, _IONBF, 0);
 }
 //---------------------------
+
+
+//------------------------
+// Déclaration globale de la chaîne de caractères pour stocker le message du serveur
+std::string serverMessage;
+// Fonction pour mettre à jour le message affiché dans la fenêtre SFML
+void UpdateSFMLMessage(const std::string& message)
+{
+    serverMessage = message;
+    std::cout << "Message mis a jour";
+    std::cout << message;
+    std::cout << serverMessage;
+}
+//------------------------
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -125,14 +139,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         // Mettre à jour le message affiché dans la fenêtre SFML avec le message reçu du serveur
         UpdateSFMLMessage(buffer);
     }
-    else if (bytesRead == 0) {
-        // La connexion a été fermée par le serveur
-        std::cout << "Connexion fermée par le serveur." << std::endl;
-    }
-    else {
-        // Gestion de l'erreur
-        std::cerr << "Erreur lors de la réception du message du serveur." << std::endl;
-    }
 
     // Initialise les chaÃ®nes globales
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -140,10 +146,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MyRegisterClass(hInstance);
 
     // Effectue l'initialisation de l'application :
-    if (!InitInstance(hInstance, nCmdShow))
-    {
-        return FALSE;
-    }
+    HWND hWnd = InitInstance(hInstance, nCmdShow);
+
+    sf::RenderWindow window(sf::VideoMode(800, 800), "Morpion");
+    sf::RenderWindow* pWindow = &window; // Garder une référence à la fenêtre SFML
+
+    sf::RectangleShape square(sf::Vector2f(100, 100)); // Carré SFML
+
+    // Paramètres du carré SFML
+    square.setFillColor(sf::Color::Red);
+    square.setPosition(100, 100);
+
 
     // Boucle de messages principale :
     while (1)
@@ -158,11 +171,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
 
         // -- Logique du jeu
+        // le jeu ...
+
 
         // -- Rendu
 
         pWindow->clear();
-        pWindow->draw(square);
+        pWindow->draw(square);  
 
         // Affichez le message du serveur dans la fenêtre SFML
         sf::Font font;
@@ -179,6 +194,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         pWindow->display();
     }
 
+
     // Fermeture du socket du client
     closesocket(hsocket);
 
@@ -186,19 +202,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     WSACleanup();
     return (int)msg.wParam;
 }
-
-//------------------------
-// Déclaration globale de la chaîne de caractères pour stocker le message du serveur
-std::string serverMessage;
-// Fonction pour mettre à jour le message affiché dans la fenêtre SFML
-void UpdateSFMLMessage(const std::string& message)
-{
-    serverMessage = message;
-    std::cout << "Message mis a jour";
-    std::cout << message;
-    std::cout << serverMessage;
-}
-//------------------------
 
 
 //
@@ -238,7 +241,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //        Dans cette fonction, nous enregistrons le handle de l'instance dans une variable globale, puis
 //        nous crÃ©ons et affichons la fenÃªtre principale du programme.
 //
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // Stocke le handle d'instance dans la variable globale
 
@@ -246,16 +249,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-    if (!hWnd)
-    {
-        return FALSE;
-    }
+    //// Affiche la fenêtre Windows
+    //ShowWindow(hWnd, nCmdShow);
+    //UpdateWindow(hWnd);
 
-    // Affiche la fenêtre Windows
-    ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);
-
-    return TRUE;
+    return hWnd;
 }
 
 //
@@ -278,14 +276,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
-        // Créer la fenêtre SFML à partir de la poignée HWND
-        pWindow = new sf::RenderWindow();
-        pWindow->create(hWnd);
+        //// Créer la fenêtre SFML à partir de la poignée HWND
+        //pWindow = new sf::RenderWindow();
+        //pWindow->create(hWnd);
 
-        // Paramètres du carré SFML
-        square.setFillColor(sf::Color::Red);
-        square.setPosition(100, 100);
-        break;
+        //// Paramètres du carré SFML
+        //square.setFillColor(sf::Color::Red);
+        //square.setPosition(100, 100);
+        //break;
     }
     case WM_PAINT:
     {
@@ -319,7 +317,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         break;
     }
-    case WM_USER + 1:
+    case WM_USER + 1: // #define WM_MAVARIABLE (WM_USER + 1)
     {
         // Recevez le message du serveur et mettez à jour la fenêtre SFML
         const char* message = reinterpret_cast<const char*>(lParam);
@@ -353,3 +351,9 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+
+
+/*
+- On doit faire le jeu dans le fenetre généré par CreateWindowW déjà présent à la création du projet ?
+- Pourquoi utiliser wWinMain et pas un simple main comme dans le serveur ? 
+*/
