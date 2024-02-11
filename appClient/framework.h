@@ -3,10 +3,23 @@
 //
 
 #pragma once
+//Include que nous allons utiliser
+#include <WinSock2.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <io.h> //ajouter console
+#include <fcntl.h> // "
+#include <Windows.h>
+
+
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN             // Exclure les en-têtes Windows rarement utilisés
-// Fichiers d'en-tête Windows
-#include <windows.h>
+
+
 // Fichiers d'en-tête C RunTime
 #include <stdlib.h>
 #include <malloc.h>
