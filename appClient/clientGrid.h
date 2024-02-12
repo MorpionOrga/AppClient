@@ -15,6 +15,7 @@ public:
     sf::Text whoPlay;
     sf::Font font;
     sf::Text inputText;
+    sf::Text play;
     sf::RectangleShape playButton;
 
 private:

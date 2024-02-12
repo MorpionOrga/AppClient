@@ -173,7 +173,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                     if (menuevent.text.unicode < 128) 
                     {
                         pseudo += (menuevent.text.unicode);
-                        std::cout << pseudo << std::endl;
                         gameGrid.inputText.setString(pseudo);
                     }
                 }

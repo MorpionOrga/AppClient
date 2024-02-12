@@ -1,3 +1,4 @@
-﻿  appClient.cpp
-C:\Users\User\source\repos\MorpionOrga\AppClient\appClient\appClient.cpp(119,43): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
-  appClient.vcxproj -> C:\Users\User\source\repos\MorpionOrga\Morpion\x64\Debug\appClient.exe
+﻿  clientGrid.cpp
+C:\Users\mstampanoni\source\repos\MorpionOrga\AppClient\appClient\clientGrid.cpp(65,51): warning C4244: 'argument' : conversion de 'int' en 'float', perte possible de données
+C:\Users\mstampanoni\source\repos\MorpionOrga\AppClient\appClient\clientGrid.cpp(65,36): warning C4244: 'argument' : conversion de 'int' en 'float', perte possible de données
+  appClient.vcxproj -> C:\Users\mstampanoni\source\repos\MorpionOrga\Morpion\x64\Debug\appClient.exe

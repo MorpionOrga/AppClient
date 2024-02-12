@@ -31,7 +31,7 @@ void Grid::update()
 
 void Grid::drawMenu(sf::RenderWindow& window)
 {
-    font.loadFromFile("arial.ttf"); 
+    font.loadFromFile("font/arial.ttf"); 
     
     inputText.setFont(font);
     inputText.setCharacterSize(20);
@@ -41,10 +41,18 @@ void Grid::drawMenu(sf::RenderWindow& window)
     window.draw(inputText);
 
     playButton.setSize(sf::Vector2f(100, 50));
-    playButton.setFillColor(sf::Color::Green);
-    playButton.setPosition(50, 100);
+    playButton.setFillColor(sf::Color::Magenta);
+    playButton.setPosition(100, 250);
 
     window.draw(playButton);
+
+    play.setFont(font);
+    play.setCharacterSize(20);
+    play.setFillColor(sf::Color::Red);
+    play.setString("Play");
+    play.setPosition(120, 220);
+    
+    window.draw(play);
 }
 
 void Grid::draw(sf::RenderWindow& window)
