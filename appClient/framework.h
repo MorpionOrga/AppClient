@@ -3,6 +3,14 @@
 //
 
 #pragma once
+
+//Empeche d'avoir certains avertissements liés à l'utilisation de fonctions risquées
+#define _CRT_SECURE_NO_WARNINGS
+
+//On se lie à la bibliothèque ws2_32.lib
+#pragma comment(lib, "ws2_32.lib")
+
+
 //Include que nous allons utiliser
 #include <WinSock2.h>
 #include <stdio.h>
