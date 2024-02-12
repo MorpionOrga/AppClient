@@ -16,7 +16,7 @@ void Message::player(std::string name, SOCKET& socket)
     rapidjson::Value Name;
     Name.SetString(name.c_str(), message.GetAllocator());
     message.AddMember("name", Name, message.GetAllocator());
-
+    namePlayer = name;
 
     //Permet de stocker le message en type json
     rapidjson::StringBuffer buffer;
@@ -43,6 +43,9 @@ void Message::move(int x, int y, SOCKET& socket)
     Y.SetInt(y);
     message.AddMember("y", Y, message.GetAllocator());
 
+    rapidjson::Value Name;
+    Name.SetString(namePlayer.c_str(), message.GetAllocator());
+    message.AddMember("name", Name, message.GetAllocator());
 
     //Permet de stocker le message en type json
     rapidjson::StringBuffer buffer;
