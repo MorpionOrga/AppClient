@@ -1,12 +1,12 @@
 #include "clientCase.h"
 
-Case::Case() : value(' ')
+Case::Case() : pvalue(0)
 {
     font.loadFromFile("font/arial.ttf");
 
 }
 
-void Case::draw(sf::RenderWindow& window, int x, int y)
+void Case::draw(sf::RenderWindow& window, int x, int y , int value)
 {
     letter.setFont(font);
     letter.setCharacterSize(50);
@@ -14,12 +14,11 @@ void Case::draw(sf::RenderWindow& window, int x, int y)
     letter.setOutlineColor(sf::Color::Black);
     letter.setOutlineThickness(2);
 
-    if (value == 'X')
+    if (value == 1)
     {
         letter.setString("X");
-
     }
-    else if (value == 'O')
+    else if (value == 2)
     {
         letter.setString("O");
     }
@@ -27,12 +26,12 @@ void Case::draw(sf::RenderWindow& window, int x, int y)
     window.draw(letter);
 }
 
-char Case::getValue()
+int Case::getValue()
 {
-    return value;
+    return pvalue;
 }
 
-void Case::setValue(char value)
+void Case::setValue(int value)
 {
-    this->value = value;
+    pvalue = value;
 }

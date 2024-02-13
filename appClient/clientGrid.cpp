@@ -16,28 +16,13 @@ void Grid::handleEvent(Message* sendMSG, sf::Event event, SOCKET& hsocket)
 {
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
     {
-        sendMSG->move(sendMSG->namePlayer ,(event.mouseButton.x / 100), ((event.mouseButton.y - 50) / 100), hsocket);
+        sendMSG->move(sendMSG->namePlayer , ((event.mouseButton.y - 50) / 100), (event.mouseButton.x / 100) , hsocket);
     }
 }
 
 void Grid::handleMessage(int x, int y, int value)
 { 
-    if (value == 1)
-    {
-        grid[x][y].setValue('X');
-        for (int i = 0; i < gridSize; ++i)
-        {
-            for (int j = 0; j < gridSize; ++j)
-            {
-                std::cout << grid[i][j].getValue() << std::endl;
-            }
-        }
-    }
-    else
-    {
-        grid[x][y].setValue('O');
-    }
-    
+    grid[x][y].setValue(value);
 }
 
 void Grid::update()
@@ -87,7 +72,7 @@ void Grid::draw(sf::RenderWindow& window)
             cellRect.setOutlineThickness(2.0f);
 
             window.draw(cellRect);
-            grid[i][j].draw(window, i, j);
+            grid[i][j].draw(window, i, j , grid[i][j].getValue());
         }
     }
 }

@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <SFML/Graphics.hpp>
 //Include que nous allons utiliser
 #include <WinSock2.h>
 #include <stdio.h>

@@ -12,7 +12,7 @@
 #include "clientGrid.h"
 #include "valueSend.h"
 
-Grid gridGame;
+Grid gameGrid;
 
 #define MAX_LOADSTRING 100
 #define _CRT_SECURE_NO_WARNINGS
@@ -42,8 +42,7 @@ void handleMessage(const std::string& jsonRequest, SOCKET hsocket)
             int x = document["x"].GetInt();
             int y = document["y"].GetInt();
             int value = document["value"].GetInt();
-            
-            gridGame.handleMessage(x, y, value);
+            gameGrid.handleMessage(x, y, value);
         }
         else {
             std::cerr << "Unknown message type: " << messageType << std::endl;
@@ -172,7 +171,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     sf::RenderWindow window(sf::VideoMode(300, 350), "Morpion");
     //sf::RenderWindow* pWindow = &window; // Garder une rÃ©fÃ©rence Ã  la fenÃªtre SFML
 
-    Grid gameGrid;
     std::string pseudo;
     bool choosepseudo = true;
 
@@ -320,13 +318,10 @@ HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //
 
-SOCKET Accept;
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
- 
     case WM_READ:
     {
         std::cout << "read" << std::endl;
@@ -334,7 +329,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         char buffer[4096];
         int bytesRead = recv(wParam, buffer, sizeof(buffer), 0);
         buffer[bytesRead] = '\0';
-        handleMessage(buffer , Accept);
+        handleMessage(buffer , wParam);
         break;
     }
     case WM_DESTROY:

@@ -1,15 +1,13 @@
 #pragma once
-#include <SFML/Graphics.hpp>
+#include "framework.h"
 
 class Case {
 public:
     Case();
     sf::Font font;
     sf::Text letter;
-    void draw(sf::RenderWindow& window, int x, int y);
-    char getValue();
-    void setValue(char val);
-
-private:
-    char value;
+    void draw(sf::RenderWindow& window, int x, int y , int value);
+    int getValue();
+    void setValue(int val);
+    int pvalue;
 };
