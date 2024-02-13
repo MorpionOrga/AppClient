@@ -1,5 +1,5 @@
-// header.h : fichier Include pour les fichiers Include système standard,
-// ou les fichiers Include spécifiques aux projets
+// header.hÂ : fichier Include pour les fichiers Include systÃ¨me standard,
+// ou les fichiers Include spÃ©cifiques aux projets
 //
 
 #pragma once
@@ -17,10 +17,10 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 #include "targetver.h"
-#define WIN32_LEAN_AND_MEAN             // Exclure les en-têtes Windows rarement utilisés
+#define WIN32_LEAN_AND_MEAN             // Exclure les en-tÃªtes Windows rarement utilisÃ©s
 
 
-// Fichiers d'en-tête C RunTime
+// Fichiers d'en-tÃªte C RunTime
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>

@@ -6,8 +6,7 @@ public:
     Message();
 
     void player(std::string name, SOCKET& socket);
-    void move(int x, int y, SOCKET& socket);
-
-private:
+    void move(std::string name, int x, int y, SOCKET& socket);
     std::string namePlayer;
+    
 };

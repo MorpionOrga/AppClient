@@ -17,6 +17,7 @@ void Case::draw(sf::RenderWindow& window, int x, int y)
     if (value == 'X')
     {
         letter.setString("X");
+
     }
     else if (value == 'O')
     {

@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Fichier Include généré par Microsoft Visual C++.
-// Utilisé par appClient.rc
+// Fichier Include gÃ©nÃ©rÃ© par Microsoft VisualÂ C++.
+// UtilisÃ© par appClient.rc
 
 #define IDS_APP_TITLE			103
 
@@ -16,7 +16,7 @@
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1
 #endif
-// Valeurs par défaut suivantes des nouveaux objets
+// Valeurs par dÃ©faut suivantes des nouveaux objets
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS

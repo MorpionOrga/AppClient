@@ -1,8 +1,8 @@
-//Empeche d'avoir certains avertissements liÃ©s Ã  l'utilisation de fonctions risquÃ©es
+//Empeche d'avoir certains avertissements liÃƒÂ©s ÃƒÂ  l'utilisation de fonctions risquÃƒÂ©es
 #define _CRT_SECURE_NO_WARNINGS
 // Empeche erreurs SFML/Rect.inl
 #define NOMINMAX
-//On se lie Ã  la bibliothÃ¨que ws2_32.lib
+//On se lie ÃƒÂ  la bibliothÃƒÂ¨que ws2_32.lib
 #pragma comment(lib, "ws2_32.lib")
 
 #include "SFML-2.6.1/include/SFML/Graphics.hpp"
@@ -12,16 +12,17 @@
 #include "clientGrid.h"
 #include "valueSend.h"
 
+Grid gridGame;
 
 #define MAX_LOADSTRING 100
 #define _CRT_SECURE_NO_WARNINGS
 
-// Variables globales :
+// Variables globalesÂ :
 HINSTANCE hInst;                                // instance actuelle
 WCHAR szTitle[MAX_LOADSTRING];                  // Texte de la barre de titre
-WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenêtre principale
+WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenÃªtre principale
 
-// Déclarations anticipées des fonctions incluses dans ce module de code :
+// DÃ©clarations anticipÃ©es des fonctions incluses dans ce module de codeÂ :
 void UpdateSFMLMessage(const std::string& message);
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -29,7 +30,29 @@ HWND                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+void handleMessage(const std::string& jsonRequest, SOCKET hsocket)
+{
+    rapidjson::Document document;
+    document.Parse(jsonRequest.c_str());
 
+    if (!document.HasParseError() || document.IsObject()) {
+        const char* messageType = document["type"].GetString();
+
+        if (std::strcmp(messageType, "move") == 0) {
+            int x = document["x"].GetInt();
+            int y = document["y"].GetInt();
+            int value = document["value"].GetInt();
+            
+            gridGame.handleMessage(x, y, value);
+        }
+        else {
+            std::cerr << "Unknown message type: " << messageType << std::endl;
+        }
+    }
+    else {
+        std::cerr << "Invalid JSON format. Expected an object." << std::endl;
+    }
+}
 
 //Ajouter console 
 void RedirectIOToConsole()
@@ -37,7 +60,7 @@ void RedirectIOToConsole()
     // Alloue une console
     AllocConsole();
 
-    // Récupère la poignée de la console
+    // RÃ©cupÃ¨re la poignÃ©e de la console
     HANDLE ConsoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
     int SystemOutput = _open_osfhandle((intptr_t)ConsoleHandle, _O_TEXT);
 
@@ -45,13 +68,13 @@ void RedirectIOToConsole()
     FILE* COutputHandle;
     freopen_s(&COutputHandle, "CONOUT$", "w", stdout);
 
-    // Assure que stdout n'est pas mis en mémoire tampon
+    // Assure que stdout n'est pas mis en mÃ©moire tampon
     setvbuf(stdout, NULL, _IONBF, 0);
 }
 
-// Déclaration globale de la chaîne de caractères pour stocker le message du serveur
+// DÃ©claration globale de la chaÃ®ne de caractÃ¨res pour stocker le message du serveur
 std::string serverMessage;
-// Fonction pour mettre à jour le message affiché dans la fenêtre SFML
+// Fonction pour mettre Ã  jour le message affichÃ© dans la fenÃªtre SFML
 void UpdateSFMLMessage(const std::string& message)
 {
     serverMessage = message;
@@ -71,8 +94,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // TODO: Placez le code ici.
 
     RedirectIOToConsole();// Appel de la fonction de redirection de la sortie vers la console
-   
-    // Initialise les chaînes globales
+
+    // Initialise les chaÃ®nes globales
     Message sendMSG;
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
@@ -86,14 +109,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     WSADATA wsaData;
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0) {
-        printf("WSAStartup failed: %d\n", iResult);
+        std::cout << ("WSAStartup failed: %d\n", iResult);
         return 1;
     }
 
-    // CrÃ©ation de la socket
+    // CrÃƒÂ©ation de la socket
     SOCKET hsocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (hsocket == INVALID_SOCKET) {
-        printf("socket failed\n");
+        std::cout << ("socket failed\n");
         WSACleanup();
         return 1;
     }
@@ -106,22 +129,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // Connexion au serveur
     if (connect(hsocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
-        printf("Connect failed\n");
+        std::cout << ("Connect failed\n");
         closesocket(hsocket);
         WSACleanup();
         return 1;
     }
     else {
-        std::cout << "Connecté au serveur.\n";
+        std::cout << "ConnectÃ© au serveur.\n";
 
-        // Envoie d'un message pour indiquer que le client est prêt à recevoir des messages
+        // Envoie d'un message pour indiquer que le client est prÃªt Ã  recevoir des messages
         const char* readyMessage = "Ready to receive messages";
         send(hsocket, readyMessage, strlen(readyMessage), 0);
     }
 
 
-    if (WSAAsyncSelect(hsocket, hWnd, WM_RESPONCE, FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR) {
-        printf("WSAAsyncSelect failed for clientSocket\n");
+    if (WSAAsyncSelect(hsocket, hWnd, WM_READ, FD_READ | FD_CLOSE) == SOCKET_ERROR) {
+        std::cout<<("WSAAsyncSelect failed for clientSocket\n");
         closesocket(hsocket);
         WSACleanup();
         return 1;
@@ -130,29 +153,29 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         std::cout << "WSAAsyncSelect successful for clientSocket\n";
     }
 
-    //Reception du message
-    char buffer[4096];
-    int bytesRead = recv(hsocket, buffer, sizeof(buffer), 0);
-    if (bytesRead > 0) {
-        // Message reçu avec succès
-        buffer[bytesRead] = '\0'; // Ajouter le terminateur de chaîne
-        std::cout << "Message du serveur : " << buffer << std::endl;
+    ////Reception du message
+    //char buffer[4096];
+    //int bytesRead = recv(hsocket, buffer, sizeof(buffer), 0);
+    //if (bytesRead > 0) {
+    //    // Message reÃ§u avec succÃ¨s
+    //    buffer[bytesRead] = '\0'; // Ajouter le terminateur de chaÃ®ne
+    //    std::cout << "Message du serveur : " << buffer << std::endl;
 
-        // Mettre à jour le message affiché dans la fenêtre SFML avec le message reçu du serveur
-        UpdateSFMLMessage(buffer);
-    }
+    //    // Mettre Ã  jour le message affichÃ© dans la fenÃªtre SFML avec le message reÃ§u du serveur
+    //    UpdateSFMLMessage(buffer);
+    //}
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
 
     MSG msg;
 
     sf::RenderWindow window(sf::VideoMode(300, 350), "Morpion");
-    //sf::RenderWindow* pWindow = &window; // Garder une référence à la fenêtre SFML
+    //sf::RenderWindow* pWindow = &window; // Garder une rÃ©fÃ©rence Ã  la fenÃªtre SFML
 
     Grid gameGrid;
     std::string pseudo;
     bool choosepseudo = true;
-    
+
 
     while (window.isOpen())
     {
@@ -170,7 +193,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 }
                 else if (menuevent.type == sf::Event::TextEntered)
                 {
-                    if (menuevent.text.unicode < 128) 
+                    if (menuevent.text.unicode < 128)
                     {
                         pseudo += (menuevent.text.unicode);
                         gameGrid.inputText.setString(pseudo);
@@ -196,11 +219,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         {
             while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
             {
-                if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-                {
-                    TranslateMessage(&msg);
-                    DispatchMessage(&msg);
-                }
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);  
             }
 
             // -- Logique du jeu
@@ -213,7 +233,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                     WSACleanup();
                     return 1;
                 }
-                gameGrid.handleEvent(event, hsocket);
+                gameGrid.handleEvent(&sendMSG ,event, hsocket);
             }
             gameGrid.update();
 
@@ -224,20 +244,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             gameGrid.draw(window);
 
             window.display();
-
-            if (gameGrid.checkWin('X')) {
-                std::cout << "X win" << std::endl;
-                window.close();
-            }
-            else if (gameGrid.checkWin('O')) {
-                std::cout << "O win" << std::endl;
-                window.close();
-            }
-            else if (gameGrid.isFull()) {
-                std::cout << "Egalite" << std::endl;
-                window.close();
-            }
-        } 
+        }
     }
 
     // Fermeture du socket du client
@@ -253,7 +260,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 //  FONCTION : MyRegisterClass()
 //
-//  OBJECTIF : Inscrit la classe de fenÃªtre.
+//  OBJECTIF : Inscrit la classe de fenÃƒÂªtre.
 //
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
@@ -280,22 +287,22 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 //   FONCTION : InitInstance(HINSTANCE, int)
 //
-//   OBJECTIF : enregistre le handle d'instance et crÃ©e une fenÃªtre principale
+//   OBJECTIF : enregistre le handle d'instance et crÃƒÂ©e une fenÃƒÂªtre principale
 //
 //   COMMENTAIRES :
 //
 //        Dans cette fonction, nous enregistrons le handle de l'instance dans une variable globale, puis
-//        nous crÃ©ons et affichons la fenÃªtre principale du programme.
+//        nous crÃƒÂ©ons et affichons la fenÃƒÂªtre principale du programme.
 //
 HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     hInst = hInstance; // Stocke le handle d'instance dans la variable globale
 
-    // Crée la fenêtre Windows
+    // CrÃ©e la fenÃªtre Windows
     HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-    //// Affiche la fenêtre Windows
+    //// Affiche la fenÃªtre Windows
     //ShowWindow(hWnd, nCmdShow);
     //UpdateWindow(hWnd);
 
@@ -305,71 +312,34 @@ HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //  FONCTION : WndProc(HWND, UINT, WPARAM, LPARAM)
 //
-//  OBJECTIF : Traite les messages pour la fenÃªtre principale.
+//  OBJECTIF : Traite les messages pour la fenÃƒÂªtre principale.
 //
 //  WM_COMMAND  - traite le menu de l'application
-//  WM_PAINT    - Dessine la fenÃªtre principale
-//  WM_DESTROY  - gÃ©nÃ¨re un message d'arrÃªt et retourne
+//  WM_PAINT    - Dessine la fenÃƒÂªtre principale
+//  WM_DESTROY  - gÃƒÂ©nÃƒÂ¨re un message d'arrÃƒÂªt et retourne
 //
 //
+
+SOCKET Accept;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    //static sf::RenderWindow* pWindow = nullptr; // Garder une référence à la fenêtre SFML
-    //static sf::RectangleShape square(sf::Vector2f(100, 100)); // Carré SFML
-
     switch (message)
     {
-    case WM_CREATE:
+ 
+    case WM_READ:
     {
-        //// Créer la fenêtre SFML à partir de la poignée HWND
-        //pWindow = new sf::RenderWindow();
-        //pWindow->create(hWnd);
-
-        //// Paramètres du carré SFML
-        //square.setFillColor(sf::Color::Red);
-        //square.setPosition(100, 100);
-        //break;
-    }
-    case WM_PAINT:
-    {
-        //pWindow->clear();
-        //pWindow->draw(square);
-
-        //// Affichez le message du serveur dans la fenêtre SFML
-        //sf::Font font;
-        //if (font.loadFromFile("font/arial.ttf")) { // Assurez-vous que le fichier arial.ttf est dans le même répertoire que votre exécutable
-        //    sf::Text text;
-        //    text.setFont(font);
-        //    text.setString(serverMessage);
-        //    text.setCharacterSize(24);
-        //    text.setFillColor(sf::Color::White);
-        //    text.setPosition(100, 300);
-        //    pWindow->draw(text);
-        //}
-
-        //pWindow->display();
-        //break;
+        std::cout << "read" << std::endl;
+        // message des clients
+        char buffer[4096];
+        int bytesRead = recv(wParam, buffer, sizeof(buffer), 0);
+        buffer[bytesRead] = '\0';
+        handleMessage(buffer , Accept);
+        break;
     }
     case WM_DESTROY:
-    {
-        // Fermer la fenêtre SFML et libérer la mémoire
-        /*if (pWindow)
-        {
-            pWindow->close();
-            delete pWindow;
-            pWindow = nullptr;
-        }
         PostQuitMessage(0);
-        break;*/
-    }
-    case WM_USER + 1: // #define WM_MAVARIABLE (WM_USER + 1)
-    {
-        // Recevez le message du serveur et mettez à jour la fenêtre SFML
-        /*const char* message = reinterpret_cast<const char*>(lParam);
-        UpdateSFMLMessage(message);
-        break;*/
-    }
+        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -378,7 +348,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 
-// Gestionnaire de messages pour la boÃ®te de dialogue Ã€ propos de.
+// Gestionnaire de messages pour la boÃƒÂ®te de dialogue Ãƒâ‚¬ propos de.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -400,6 +370,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 /*
-- On doit faire le jeu dans le fenetre généré par CreateWindowW déjà présent à la création du projet ?
+- On doit faire le jeu dans le fenetre gÃ©nÃ©rÃ© par CreateWindowW dÃ©jÃ  prÃ©sent Ã  la crÃ©ation du projet ?
 - Pourquoi utiliser wWinMain et pas un simple main comme dans le serveur ?
 */

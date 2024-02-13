@@ -1,3 +1,4 @@
+#pragma once
 #include "clientCase.h"
 #include "valueSend.h"
 const int gridSize = 3;
@@ -6,7 +7,8 @@ class Grid {
 public:
     Grid();
 
-    void handleEvent(sf::Event event , SOCKET& hsocket);
+    void handleEvent(Message* sendMSG, sf::Event event, SOCKET& hsocket);
+    void handleMessage(int x, int y, int value);
     void drawMenu(sf::RenderWindow& window);
     void draw(sf::RenderWindow& window);
     void update();
@@ -21,5 +23,4 @@ public:
 private:
     Case grid[gridSize][gridSize];
     bool Xplay;
-    Message sendMSG;
 };

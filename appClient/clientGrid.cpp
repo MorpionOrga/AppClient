@@ -12,12 +12,32 @@ Grid::Grid() : Xplay(true)
     }
 }
 
-void Grid::handleEvent(sf::Event event , SOCKET& hsocket)
+void Grid::handleEvent(Message* sendMSG, sf::Event event, SOCKET& hsocket)
 {
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
     {
-        sendMSG.move( (event.mouseButton.x / 100) , ((event.mouseButton.y - 50) / 100) , hsocket);
+        sendMSG->move(sendMSG->namePlayer ,(event.mouseButton.x / 100), ((event.mouseButton.y - 50) / 100), hsocket);
     }
+}
+
+void Grid::handleMessage(int x, int y, int value)
+{ 
+    if (value == 1)
+    {
+        grid[x][y].setValue('X');
+        for (int i = 0; i < gridSize; ++i)
+        {
+            for (int j = 0; j < gridSize; ++j)
+            {
+                std::cout << grid[i][j].getValue() << std::endl;
+            }
+        }
+    }
+    else
+    {
+        grid[x][y].setValue('O');
+    }
+    
 }
 
 void Grid::update()
@@ -31,8 +51,8 @@ void Grid::update()
 
 void Grid::drawMenu(sf::RenderWindow& window)
 {
-    font.loadFromFile("font/arial.ttf"); 
-    
+    font.loadFromFile("font/arial.ttf");
+
     inputText.setFont(font);
     inputText.setCharacterSize(20);
     inputText.setFillColor(sf::Color::White);
@@ -51,7 +71,7 @@ void Grid::drawMenu(sf::RenderWindow& window)
     play.setFillColor(sf::Color::Red);
     play.setString("Play");
     play.setPosition(120, 220);
-    
+
     window.draw(play);
 }
 

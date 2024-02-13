@@ -1,6 +1,6 @@
 #include "valueSend.h"
 
-Message::Message() 
+Message::Message()
 {
 
 }
@@ -27,7 +27,7 @@ void Message::player(std::string name, SOCKET& socket)
     send(socket, buffer.GetString(), buffer.GetLength(), 0);
 }
 
-void Message::move(int x, int y, SOCKET& socket)
+void Message::move(std::string name , int x, int y, SOCKET& socket)
 {
     rapidjson::Document message;
 
@@ -44,9 +44,11 @@ void Message::move(int x, int y, SOCKET& socket)
     message.AddMember("y", Y, message.GetAllocator());
 
     rapidjson::Value Name;
-    Name.SetString(namePlayer.c_str(), message.GetAllocator());
+    Name.SetString(name.c_str(), message.GetAllocator());
     message.AddMember("name", Name, message.GetAllocator());
 
+    std::cout << "name" << name << std::endl;
+    std::cout << "name.cstr" << name.c_str() << std::endl;
     //Permet de stocker le message en type json
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
