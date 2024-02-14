@@ -19,8 +19,10 @@ public:
     sf::Text inputText;
     sf::Text play;
     sf::RectangleShape playButton;
+    int whoWin;
+    bool egalite;
+    bool Xplay;
 
 private:
     Case grid[gridSize][gridSize];
-    bool Xplay;
 };

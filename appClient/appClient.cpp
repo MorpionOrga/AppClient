@@ -44,6 +44,16 @@ void handleMessage(const std::string& jsonRequest, SOCKET hsocket)
             int value = document["value"].GetInt();
             gameGrid.handleMessage(y, x, value);
         }
+        else if (std::strcmp(messageType, "win") == 0)
+        {
+            gameGrid.whoWin = document["value"].GetInt();
+            std::cout << "Win" << std::endl;
+        }
+        else if (std::strcmp(messageType, "egalite") == 0)
+        {
+            gameGrid.egalite = document["value"].GetBool();
+            std::cout << "Egalite" << std::endl;
+        }
         else {
             std::cerr << "Unknown message type: " << messageType << std::endl;
         }
