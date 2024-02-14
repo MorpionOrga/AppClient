@@ -11,6 +11,7 @@
 #include "appClient.h"
 #include "clientGrid.h"
 #include "valueSend.h"
+#include "Thread.h"
 
 Grid gameGrid;
 
@@ -18,6 +19,7 @@ Grid gameGrid;
 #define _CRT_SECURE_NO_WARNINGS
 
 // Variables globalesÂ :
+CRITICAL_SECTION critical;
 HINSTANCE hInst;                                // instance actuelle
 WCHAR szTitle[MAX_LOADSTRING];                  // Texte de la barre de titre
 WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenÃªtre principale
@@ -25,8 +27,6 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenÃªtr
 // DÃ©clarations anticipÃ©es des fonctions incluses dans ce module de codeÂ :
 void UpdateSFMLMessage(const std::string& message);
 
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-HWND                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
@@ -92,6 +92,211 @@ void UpdateSFMLMessage(const std::string& message)
     std::cout << serverMessage;
 }
 
+
+class ThreadClient : public Thread
+{
+public:
+    ThreadClient() : Thread() {  };
+
+    virtual bool Run() override {
+
+        while (true) {}
+        return true;
+    }
+
+    virtual bool Start() override
+    {
+        std::cout << "Starting..." << std::endl;
+        m_threadHandle = CreateThread(nullptr, 0, Static_ThreadProc, (void*)this, 0, nullptr);
+        return (m_threadHandle != nullptr);
+    }
+
+
+    ATOM MyRegisterClass(HINSTANCE hInstance)
+    {
+        WNDCLASSEXW wcex;
+
+        wcex.cbSize = sizeof(WNDCLASSEX);
+
+        wcex.style = CS_HREDRAW | CS_VREDRAW;
+        wcex.lpfnWndProc = WndProc;
+        wcex.cbClsExtra = 0;
+        wcex.cbWndExtra = 0;
+        wcex.hInstance = hInstance;
+        wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPCLIENT));
+        wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+        wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+        wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_APPCLIENT);
+        wcex.lpszClassName = szWindowClass;
+        wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+
+        return RegisterClassExW(&wcex);
+    }
+
+
+
+
+    void InitInstance(HINSTANCE hInstance, int nCmdShow)
+    {
+        hInst = hInstance; // Stocke le handle d'instance dans la variable globale
+
+        // Creation de la fenetre Windows
+        hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+            CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+
+    }
+
+
+    virtual void OnThread() override
+    {
+     
+        hInstance = GetModuleHandle(0);
+
+        Message sendMSG;
+
+        LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+        LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
+        MyRegisterClass(hInstance);
+
+        InitInstance(hInstance, 0);
+
+        // CrÃƒÂ©ation de la socket
+        SOCKET hsocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (hsocket == INVALID_SOCKET) {
+            std::cout << ("socket failed\n");
+            WSACleanup();
+        }
+
+        struct sockaddr_in serverAddress;
+        serverAddress.sin_family = AF_INET;
+        serverAddress.sin_port = htons(PORT);
+        serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");;
+
+
+        // Connexion au serveur
+        if (connect(hsocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
+            std::cout << ("Connect failed\n");
+            closesocket(hsocket);
+            WSACleanup();
+        }
+        else {
+            std::cout << "Connecte au serveur.\n";
+
+            // Envoie d'un message pour indiquer que le client est prÃªt Ã  recevoir des messages
+            const char* readyMessage = "Ready to receive messages";
+            send(hsocket, readyMessage, strlen(readyMessage), 0);
+        }
+
+        if (WSAAsyncSelect(hsocket, hWnd, WM_READ, FD_READ | FD_CLOSE) == SOCKET_ERROR) {
+            std::cout << ("WSAAsyncSelect failed for clientSocket\n");
+            closesocket(hsocket);
+            WSACleanup();
+        }
+        else {
+            std::cout << "WSAAsyncSelect successful for clientSocket\n";
+        }
+
+        HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
+
+        
+
+        sf::RenderWindow window(sf::VideoMode(300, 350), "Morpion");
+        //sf::RenderWindow* pWindow = &window; // Garder une rÃ©fÃ©rence Ã  la fenÃªtre SFML
+
+        std::string pseudo;
+        bool choosepseudo = true;
+
+
+        while (window.isOpen())
+        {
+            if (choosepseudo)
+            {
+                sf::Event menuevent;
+                while (window.pollEvent(menuevent))
+                {
+                    if (menuevent.type == sf::Event::Closed)
+                    {
+                        window.close();
+                        closesocket(hsocket);
+                        WSACleanup();
+                    }
+                    else if (menuevent.type == sf::Event::TextEntered)
+                    {
+                        if (menuevent.text.unicode < 128)
+                        {
+                            pseudo += (menuevent.text.unicode);
+                            gameGrid.inputText.setString(pseudo);
+                        }
+                    }
+                    else if (menuevent.type == sf::Event::MouseButtonPressed)
+                    {
+                        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                        if (gameGrid.playButton.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)))
+                        {
+                            if (pseudo != "") {
+                                sendMSG.player(pseudo, hsocket);
+                                choosepseudo = false;
+                            }
+                        }
+                    }
+                }
+                window.clear();
+                gameGrid.drawMenu(window);
+                window.display();
+            }
+            else
+            {
+                while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+                {
+                    TranslateMessage(&msg);
+                    DispatchMessage(&msg);
+                }
+
+                // -- Logique du jeu
+                // le jeu ...
+                sf::Event event;
+                while (window.pollEvent(event)) {
+                    if (event.type == sf::Event::Closed) {
+                        window.close();
+                        closesocket(hsocket);
+                        WSACleanup();
+                    }
+                    gameGrid.handleEvent(&sendMSG, event, hsocket);
+                }
+                gameGrid.update();
+
+                // -- Rendu
+
+                //pWindow->clear();
+                window.clear();
+                gameGrid.draw(window);
+
+                window.display();
+            }
+        }
+
+        // Fermeture du socket du client
+        closesocket(hsocket);
+    }
+
+    MSG GetMsg()
+    {
+        return msg;
+    }
+
+private:
+    MSG msg;
+    HINSTANCE hInstance;
+    HWND hWnd;
+};
+
+
+
+
+
+
+
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
@@ -100,18 +305,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: Placez le code ici.
+    InitializeCriticalSection(&critical);
 
-    RedirectIOToConsole();// Appel de la fonction de redirection de la sortie vers la console
-
-    // Initialise les chaÃ®nes globales
-    Message sendMSG;
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_APPCLIENT, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
-
-    // Effectue l'initialisation de l'application :
-    HWND hWnd = InitInstance(hInstance, nCmdShow);
+    RedirectIOToConsole();
 
     int iResult;
     // Initialisation de winsock
@@ -122,211 +318,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return 1;
     }
 
-    // CrÃƒÂ©ation de la socket
-    SOCKET hsocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (hsocket == INVALID_SOCKET) {
-        std::cout << ("socket failed\n");
-        WSACleanup();
-        return 1;
-    }
+    ThreadClient* threadClient = new ThreadClient();
+    threadClient->Start();
 
-    struct sockaddr_in serverAddress;
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(PORT);
-    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");;
-
-
-    // Connexion au serveur
-    if (connect(hsocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
-        std::cout << ("Connect failed\n");
-        closesocket(hsocket);
-        WSACleanup();
-        return 1;
-    }
-    else {
-        std::cout << "ConnectÃ© au serveur.\n";
-
-        // Envoie d'un message pour indiquer que le client est prÃªt Ã  recevoir des messages
-        const char* readyMessage = "Ready to receive messages";
-        send(hsocket, readyMessage, strlen(readyMessage), 0);
-    }
-
-
-    if (WSAAsyncSelect(hsocket, hWnd, WM_READ, FD_READ | FD_CLOSE) == SOCKET_ERROR) {
-        std::cout<<("WSAAsyncSelect failed for clientSocket\n");
-        closesocket(hsocket);
-        WSACleanup();
-        return 1;
-    }
-    else {
-        std::cout << "WSAAsyncSelect successful for clientSocket\n";
-    }
-
-    ////Reception du message
-    //char buffer[4096];
-    //int bytesRead = recv(hsocket, buffer, sizeof(buffer), 0);
-    //if (bytesRead > 0) {
-    //    // Message reÃ§u avec succÃ¨s
-    //    buffer[bytesRead] = '\0'; // Ajouter le terminateur de chaÃ®ne
-    //    std::cout << "Message du serveur : " << buffer << std::endl;
-
-    //    // Mettre Ã  jour le message affichÃ© dans la fenÃªtre SFML avec le message reÃ§u du serveur
-    //    UpdateSFMLMessage(buffer);
-    //}
-
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPCLIENT));
-
-    MSG msg;
-
-    sf::RenderWindow window(sf::VideoMode(300, 350), "Morpion");
-    //sf::RenderWindow* pWindow = &window; // Garder une rÃ©fÃ©rence Ã  la fenÃªtre SFML
-
-    std::string pseudo;
-    bool choosepseudo = true;
-
-
-    while (window.isOpen())
+    MSG message;
+    while (GetMessage(&message, nullptr, 0, 0))
     {
-        if (choosepseudo)
-        {
-            sf::Event menuevent;
-            while (window.pollEvent(menuevent))
-            {
-                if (menuevent.type == sf::Event::Closed)
-                {
-                    window.close();
-                    closesocket(hsocket);
-                    WSACleanup();
-                    return 1;
-                }
-                else if (menuevent.type == sf::Event::TextEntered)
-                {
-                    if (menuevent.text.unicode < 128)
-                    {
-                        pseudo += (menuevent.text.unicode);
-                        gameGrid.inputText.setString(pseudo);
-                    }
-                }
-                else if (menuevent.type == sf::Event::MouseButtonPressed)
-                {
-                    sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-                    if (gameGrid.playButton.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)))
-                    {
-                        if (pseudo != "") {
-                            sendMSG.player(pseudo, hsocket);
-                            choosepseudo = false;
-                        }
-                    }
-                }
-            }
-            window.clear();
-            gameGrid.drawMenu(window);
-            window.display();
-        }
-        else
-        {
-            while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-            {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);  
-            }
-
-            // -- Logique du jeu
-            // le jeu ...
-            sf::Event event;
-            while (window.pollEvent(event)) {
-                if (event.type == sf::Event::Closed) {
-                    window.close();
-                    closesocket(hsocket);
-                    WSACleanup();
-                    return 1;
-                }
-                gameGrid.handleEvent(&sendMSG ,event, hsocket);
-            }
-            gameGrid.update();
-
-            // -- Rendu
-
-            //pWindow->clear();
-            window.clear();
-            gameGrid.draw(window);
-
-            window.display();
-        }
+        TranslateMessage(&message);
+        DispatchMessage(&message);
     }
 
-    // Fermeture du socket du client
-    closesocket(hsocket);
 
     // Nettoyage de Winsock
     WSACleanup();
-    return (int)msg.wParam;
+    return (int)(*threadClient).GetMsg().wParam;
 }
 
-
-
-//
-//  FONCTION : MyRegisterClass()
-//
-//  OBJECTIF : Inscrit la classe de fenÃƒÂªtre.
-//
-ATOM MyRegisterClass(HINSTANCE hInstance)
-{
-    WNDCLASSEXW wcex;
-
-    wcex.cbSize = sizeof(WNDCLASSEX);
-
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = WndProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 0;
-    wcex.hInstance = hInstance;
-    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPCLIENT));
-    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_APPCLIENT);
-    wcex.lpszClassName = szWindowClass;
-    wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-
-    return RegisterClassExW(&wcex);
-}
-
-
-//
-//   FONCTION : InitInstance(HINSTANCE, int)
-//
-//   OBJECTIF : enregistre le handle d'instance et crÃƒÂ©e une fenÃƒÂªtre principale
-//
-//   COMMENTAIRES :
-//
-//        Dans cette fonction, nous enregistrons le handle de l'instance dans une variable globale, puis
-//        nous crÃƒÂ©ons et affichons la fenÃƒÂªtre principale du programme.
-//
-HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
-{
-    hInst = hInstance; // Stocke le handle d'instance dans la variable globale
-
-    // CrÃ©e la fenÃªtre Windows
-    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
-
-    //// Affiche la fenÃªtre Windows
-    //ShowWindow(hWnd, nCmdShow);
-    //UpdateWindow(hWnd);
-
-    return hWnd;
-}
-
-//
-//  FONCTION : WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  OBJECTIF : Traite les messages pour la fenÃƒÂªtre principale.
-//
-//  WM_COMMAND  - traite le menu de l'application
-//  WM_PAINT    - Dessine la fenÃƒÂªtre principale
-//  WM_DESTROY  - gÃƒÂ©nÃƒÂ¨re un message d'arrÃƒÂªt et retourne
-//
-//
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -372,9 +379,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
-
-
-/*
-- On doit faire le jeu dans le fenetre gÃ©nÃ©rÃ© par CreateWindowW dÃ©jÃ  prÃ©sent Ã  la crÃ©ation du projet ?
-- Pourquoi utiliser wWinMain et pas un simple main comme dans le serveur ?
-*/
