@@ -1,3 +1,3 @@
 ﻿  appClient.cpp
-C:\Users\timbert\Documents\AppClient\appClient\appClient.cpp(179,47): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
+C:\Users\timbert\Documents\AppClient\appClient\appClient.cpp(181,47): warning C4267: 'argument' : conversion de 'size_t' en 'int', perte possible de données
   appClient.vcxproj -> C:\Users\timbert\Documents\Morpion\x64\Debug\appClient.exe
