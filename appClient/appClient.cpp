@@ -42,7 +42,7 @@ void handleMessage(const std::string& jsonRequest, SOCKET hsocket)
             int x = document["x"].GetInt();
             int y = document["y"].GetInt();
             int value = document["value"].GetInt();
-            gameGrid.handleMessage(x, y, value);
+            gameGrid.handleMessage(y, x, value);
         }
         else {
             std::cerr << "Unknown message type: " << messageType << std::endl;
